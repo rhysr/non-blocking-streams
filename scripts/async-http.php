@@ -1,14 +1,17 @@
 <?php
 
-$streamCount = 4;
+$streamCount = 10;
 $streams     = array();
 foreach (range(0, $streamCount - 1) as $i) {
     //connect to server
     $streams[$i] = stream_socket_client('tcp://127.0.0.1:80');
     //make stream non-blocking.
     stream_set_blocking($streams[$i], 0);
+}
+
+foreach ($streams as $stream) {
     //init http request
-    fwrite($streams[$i], "GET /random-sleep.php HTTP/1.0\r\nHost: 127.0.0.1\r\nAccept: */*\r\n\r\n");
+    fwrite($stream, "GET /random-sleep.php HTTP/1.0\r\nHost: 127.0.0.1\r\nAccept: */*\r\n\r\n");
 }
 
 echo "Start polling streams...\n\n";
@@ -32,7 +35,7 @@ while (true) {
             continue;
         }
         //slow down rate of polling so logs are readable
-        usleep(500000);
+        usleep(200000);
         echo "\n";
     }
 
