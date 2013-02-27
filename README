@@ -1,0 +1,19 @@
+Example of non-blocking streams
+-------------------------------
+
+Code makes several http connections to a script which sleeps for a random period of time before responding.
+Traditional blocking sockets would wait for each request to finish before moving on to the next.
+However, these connections are configured not to block, so they will return immediately after accessing the stream with whatever data that is waiting.
+The script demonstrates the asynchronous behaviour by showing that the order of the responses is not necessarily the order of the requests
+
+
+Instructions
+------------
+
+Copy web/random-sleep.php to your local webroot so it's accessible at http://127.0.0.1:random-sleep.php
+You don't have to put it there but request details will need changing.
+
+Run
+
+php ./scripts/async-http.php
+
