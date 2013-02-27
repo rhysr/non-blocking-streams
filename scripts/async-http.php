@@ -4,48 +4,39 @@ $streamCount = 10;
 $streams     = array();
 foreach (range(0, $streamCount - 1) as $i) {
     //connect to server
-    $streams[$i] = stream_socket_client('tcp://127.0.0.1:80');
+    $stream = stream_socket_client('tcp://127.0.0.1:80');
     //make stream non-blocking.
-    stream_set_blocking($streams[$i], 0);
+    stream_set_blocking($stream, 0);
+    $streams[(int) $stream] = $stream;
 }
 
+$microtime = microtime(true);
 foreach ($streams as $stream) {
     //init http request
     fwrite($stream, "GET /random-sleep.php HTTP/1.0\r\nHost: 127.0.0.1\r\nAccept: */*\r\n\r\n");
 }
 
 echo "Start polling streams...\n\n";
-$successOrder = array();
-while (true) {
-    foreach ($streams as $i => $stream) {
-        echo "Stream $i...";
 
-        //get any data pending in stream
-        //will return immediately as it's non-blocking
-        //blocking socket would wait until there was a response
-        $data = fgets($stream);
-        if ($data) {
-            $successOrder[$i] = time();
+//the duration in which we will block for stream activity to happen
+$activityInterval = 200000;
+while (0 < count($streams)) {
+    //assign remaining open streams to be read
+    $reads = $streams;
 
-            //tidy up stream
-            fclose($streams[$i]);
-            unset($streams[$i]);
+    //filter $reads array to just streams that had any activity in
+    //this blocks whilst it checks for activity
+    if (stream_select($reads, $writes = null, $except = null, 0, $activityInterval) > 0) {
 
-            echo "success\n";
-            continue;
+        //handle streams that had any activity
+        foreach ($reads as $stream) {
+
+            //we only care that stream had activity so we'll close and unset them
+            fclose($streams[(int) $stream]);
+            unset($streams[(int) $stream]);
+
+            echo 'Stream ' . (int) $stream . " Completed in " . number_format((float) (microtime(true) - $microtime), 3) . " seconds \n";
         }
-        //slow down rate of polling so logs are readable
-        usleep(200000);
-        echo "\n";
     }
-
-    if (empty($streams)) {
-        echo "All streams finished\n\n";
-        break;
-    }
-}
-
-foreach ($successOrder as $streamId => $time) {
-    echo "Stream $streamId finished at " . date('H:i:s', $time)  . "\n";
 }
 
